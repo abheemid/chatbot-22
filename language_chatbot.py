@@ -6,7 +6,7 @@ from google.genai import types
 st.set_page_config(page_title="Gemini Chatbot with System Prompt", page_icon="💬")
 
 # Header
-st.title("💬 Satvik's Chatbot")
+st.title("💬 Arti's Chatbot")
 st.caption("I built this chatbot as a part of Gen AI LaunchPad")
 
 # Initialize Gemini client
@@ -104,7 +104,7 @@ if st.sidebar.button("🧹 Clear Chat"):
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("❤️ Made by [Satvik](https://www.linkedin.com/in/satvik-paramkusham/)")
+st.sidebar.markdown("❤️ Made by [Arti](https://www.linkedin.com/in/arati-bheemidi/)")
 
 # ----------------------------
 # Display chat history
