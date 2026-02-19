@@ -68,4 +68,4 @@ if prompt := st.chat_input("Type your message here..."):
     st.session_state.history.append({"role": "assistant", "content": reply})
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("❤️ Made by [Arti with AI](https://buildfastwithai.com)")
+st.sidebar.markdown("❤️ Made by [Arti with AI](https://www.linkedin.com/in/arati-bheemidi/)")
