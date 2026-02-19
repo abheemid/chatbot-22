@@ -2,165 +2,149 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-# --------------------------------------------------
 # Page config
-# --------------------------------------------------
-st.set_page_config(
-    page_title="Arti Chatbot",
-    page_icon="💬",
-    layout="centered"
-)
+st.set_page_config(page_title="Gemini Chatbot with System Prompt", page_icon="💬")
 
-# --------------------------------------------------
-# Custom CSS (Design Only)
-# --------------------------------------------------
-st.markdown("""
-<style>
-body {
-    background: linear-gradient(180deg, #f8f9fb 0%, #ffffff 100%);
-}
-.chat-title {
-    font-size: 2rem;
-    font-weight: 700;
-}
-.chat-subtitle {
-    color: #6b7280;
-    margin-bottom: 1rem;
-}
-.footer {
-    text-align: center;
-    color: #9ca3af;
-    font-size: 0.8rem;
-    margin-top: 2rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --------------------------------------------------
 # Header
-# --------------------------------------------------
-st.markdown("<div class='chat-title'>💬 Arti Chatbot</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='chat-subtitle'>Chat with different AI personas using system instructions</div>",
-    unsafe_allow_html=True
-)
+st.title("💬 Satvik's Chatbot")
+st.caption("I built this chatbot as a part of Gen AI LaunchPad")
 
-# --------------------------------------------------
-# Gemini client
-# --------------------------------------------------
+# Initialize Gemini client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-# --------------------------------------------------
-# Persona Definitions
-# --------------------------------------------------
+# ----------------------------
+# Persona presets
+# ----------------------------
 PERSONAS = {
-    "Default Assistant": "You are a helpful, clear, and friendly assistant.",
-    
-    "Tamil Persona 🇮🇳": (
-        "You are a friendly AI assistant who primarily responds in Tamil. "
-        "Use simple, conversational Tamil with occasional English words if helpful. "
-        "Be polite, warm, and culturally natural."
+    "Default (Helpful Assistant)": "You are a helpful assistant.",
+
+    "Tamil Tutor (தமிழ்)": (
+        "You are a friendly Tamil language tutor. "
+        "Respond primarily in Tamil, but you may include short English explanations when helpful. "
+        "Correct mistakes gently, provide 2-3 alternatives, and include pronunciation in Latin script when useful. "
+        "Keep responses concise and practical for daily conversation."
     ),
-    
-    "Telugu Persona 🇮🇳": (
-        "You are a friendly AI assistant who primarily responds in Telugu. "
-        "Use natural spoken Telugu, mixing light English where appropriate. "
-        "Keep the tone respectful and approachable."
+
+    "Marathi Tutor (मराठी)": (
+        "You are a friendly Marathi language tutor. "
+        "Respond primarily in Marathi, with brief English explanations if needed. "
+        "Correct mistakes gently, provide 2-3 alternative phrases, and include pronunciation in Latin script when useful. "
+        "Focus on everyday conversation and polite forms."
     ),
-    
-    "Marathi Persona 🇮🇳": (
-        "You are a friendly AI assistant who primarily responds in Marathi. "
-        "Use clear, conversational Marathi with a warm and helpful tone."
+
+    "Telugu Tutor (తెలుగు)": (
+        "You are a friendly Telugu language tutor. "
+        "Respond primarily in Telugu, with brief English explanations if needed. "
+        "Correct mistakes gently, provide 2-3 alternative phrases, and include pronunciation in Latin script when useful. "
+        "Prefer short, everyday-life sentences and include both questions and answers when relevant."
     ),
-    
-    "Hindi Persona 🇮🇳": (
-        "You are a friendly AI assistant who primarily responds in Hindi. "
-        "Use simple, conversational Hindi with optional Hinglish where natural. "
-        "Keep responses polite and supportive."
+
+    "Hindi Tutor (हिंदी)": (
+        "You are a friendly Hindi language tutor. "
+        "Respond primarily in Hindi, with brief English explanations if needed. "
+        "Correct mistakes gently, provide 2-3 alternative phrases, and include pronunciation in Latin script when useful. "
+        "Focus on polite, everyday conversation."
     ),
 }
 
-# --------------------------------------------------
-# Sidebar – Controls
-# --------------------------------------------------
-st.sidebar.title("⚙️ Settings")
+# ----------------------------
+# Sidebar - Custom Instructions
+# ----------------------------
+st.sidebar.title("⚙️ Custom Instructions")
+st.sidebar.write("Choose a persona preset or edit the system prompt to change how the chatbot responds.")
 
-st.sidebar.subheader("🧠 Persona")
 selected_persona = st.sidebar.selectbox(
-    "Choose Assistant Persona",
-    options=list(PERSONAS.keys())
+    "Persona Preset",
+    options=list(PERSONAS.keys()),
+    index=0,
+    help="Pick a preset system prompt (persona) for the assistant."
 )
 
-st.sidebar.subheader("✍️ System Prompt")
-system_prompt = st.sidebar.text_area(
-    "Customize System Instruction",
-    value=PERSONAS[selected_persona],
-    height=160,
-    help="You can further edit the persona instructions here."
-)
+# Init session state
+if "selected_persona" not in st.session_state:
+    st.session_state.selected_persona = selected_persona
 
-st.sidebar.subheader("🎨 Appearance")
-assistant_name = st.sidebar.text_input("Assistant Name", value="Arti AI")
-
-st.sidebar.info(
-    "💡 Switching persona resets the chat.\n\n"
-    "You can also manually tweak the system prompt for fine control."
-)
-
-# --------------------------------------------------
-# Session State Initialization (CORE LOGIC UNCHANGED)
-# --------------------------------------------------
 if "system_prompt" not in st.session_state:
-    st.session_state.system_prompt = system_prompt
-    st.session_state.history = []
-    st.session_state.chat = client.chats.create(
-        model="gemini-2.5-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt
-        )
-    )
+    st.session_state.system_prompt = PERSONAS[selected_persona]
 
-# Reset chat if system prompt changes
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# If persona changes, load its prompt + reset chat
+if st.session_state.selected_persona != selected_persona:
+    st.session_state.selected_persona = selected_persona
+    st.session_state.system_prompt = PERSONAS[selected_persona]
+    st.session_state.history = []
+    st.rerun()
+
+# Editable system prompt box
+system_prompt = st.sidebar.text_area(
+    "System Prompt (Editable)",
+    value=st.session_state.system_prompt,
+    height=180,
+    help="You can tweak the preset prompt here. Changing it will reset the chat."
+)
+
+# Reset chat when system prompt changes (manual edits)
 if st.session_state.system_prompt != system_prompt:
     st.session_state.system_prompt = system_prompt
     st.session_state.history = []
-    st.session_state.chat = client.chats.create(
-        model="gemini-2.5-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt
-        )
-    )
     st.rerun()
 
-# --------------------------------------------------
-# Display Chat History
-# --------------------------------------------------
+st.sidebar.info(
+    "💡 **Tip:** Try prompts like:\n"
+    "- 'You are a friendly pirate'\n"
+    "- 'Respond only in haikus'\n"
+    "- 'You are a coding tutor'"
+)
+
+# Optional: a reset button
+if st.sidebar.button("🧹 Clear Chat"):
+    st.session_state.history = []
+    st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("❤️ Made by [Satvik](https://www.linkedin.com/in/satvik-paramkusham/)")
+
+# ----------------------------
+# Display chat history
+# ----------------------------
 for message in st.session_state.history:
-    with st.chat_message(
-        message["role"],
-        avatar="🧑" if message["role"] == "user" else "🤖"
-    ):
+    with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --------------------------------------------------
-# Chat Input
-# --------------------------------------------------
-if prompt := st.chat_input("Type your message here…"):
+# ----------------------------
+# Chat input + model call
+# ----------------------------
+if prompt := st.chat_input("Type your message here..."):
+    # Add user message to history
     st.session_state.history.append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="🧑"):
+    with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant", avatar="🤖"):
-        response = st.session_state.chat.send_message(prompt)
+    # Create chat with system prompt
+    chat = client.chats.create(
+        model="gemini-2.5-flash",
+        config=types.GenerateContentConfig(
+            system_instruction=st.session_state.system_prompt
+        ),
+    )
+
+    # Replay previous messages (user + assistant) to preserve context
+    for msg in st.session_state.history[:-1]:
+        role = msg["role"]
+        content = msg["content"]
+        if role == "user":
+            chat.send_message(content)
+        elif role == "assistant":
+            # Provide assistant turns back to the model as context
+            chat.send_message(f"(assistant previously said) {content}")
+
+    # Get response from Gemini
+    with st.chat_message("assistant"):
+        response = chat.send_message(prompt)
         reply = response.text
-        st.markdown(f"**{assistant_name}:** {reply}")
+        st.markdown(reply)
 
+    # Add assistant message to history
     st.session_state.history.append({"role": "assistant", "content": reply})
-
-# --------------------------------------------------
-# Footer
-# --------------------------------------------------
-st.markdown(
-    "<div class='footer'>❤️ Made by <a href='https://www.linkedin.com/in/arati-bheemidi/' target='_blank'>Arti with AI</a></div>",
-    unsafe_allow_html=True
-)
